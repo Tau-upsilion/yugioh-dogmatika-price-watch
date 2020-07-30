@@ -16,4 +16,4 @@ The goal of this program was to have price updates to a new archetype comming to
 
 - [Realpython](https://realpython.com)
 - [Stackoverflow](https://Stackoverflow.com)
-- [BeautifulSoup documentation] (https://crummy.com/software/BeautifulSoup/bs4/doc)
+- [BeautifulSoup documentation](https://crummy.com/software/BeautifulSoup/bs4/doc)
