@@ -3,7 +3,17 @@ from requests.exceptions import RequestException
 from contextlib import closing
 from bs4 import BeautifulSoup
 from requests_html import HTMLSession
-import json
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from datetime import datetime
+import json, smtplib, ssl, yaml
+import emailconfig as cfg
+
+port = 587
+smtp_server = "smtp.gmail.com"
+sender_email = cfg.sender_email["email"]
+sender_password = cfg.sender_email["password"]
+receiver_emails = cfg.receiver_emails["emails"].split(", ")
 
 def simple_get(url):
     try:
@@ -33,13 +43,30 @@ def main():
         html = BeautifulSoup(resp.html.html, "html.parser")
         allSearchResultSpansNames = html.findAll("span", {"class": "search-result__title"})
         allSearchResultSpansPrice = html.findAll("span", {"class": "inventory__price-with-shipping"})
-        cardData = {"data":[]}
+        cardDataDict = {"data":[]}
+        #I'm adding this as a dictionary for proper data structure
         for i in range(len(allSearchResultSpansNames)):
             card = {}
             card["name"] = allSearchResultSpansNames[i].contents
             card["price"] = allSearchResultSpansPrice[i].contents
-            cardData["data"].append(card)
-            print("I just added " + card)
-        print(cardData)
+            cardDataDict["data"].append(card)
+            print("Adding " + json.dumps(card) + " to card data")
+        cardDataStr = json.dumps(cardDataDict)
+        cardDataJson = json.loads(cardDataStr)
+        cardDataYaml = yaml.dump(cardDataJson)
+        cardDataYamlStr = str(cardDataYaml)
+        print(cardDataYamlStr)
+        context = ssl.create_default_context()
+        with smtplib.SMTP(smtp_server, port) as server:
+            server.starttls(context=context)
+            server.login(sender_email, sender_password)
+            for email in receiver_emails:
+                msg = MIMEMultipart()
+                msg['From'] = sender_email
+                msg['To'] = email
+                msg['Subject'] = "Dogmatika update " + str(datetime.now())
+                msg.attach(MIMEText(cardDataYamlStr, 'plain'))
+                print("Sending email to " + email)
+                server.sendmail(sender_email, email, msg.as_string())
 if __name__=="__main__":
     main()

@@ -10,10 +10,11 @@ The goal of this program was to have price updates to a new archetype comming to
 - Javascript rending pages
 - Parasing
 - Emailing using python
+    - Different type of files
 - Better understanding of structure of HTML pages
 
 ## Cool resources I used
 
-- [Realpython](https://realpython.com)
+- *[Realpython](https://realpython.com)
 - [Stackoverflow](https://Stackoverflow.com)
-- [BeautifulSoup documentation] (https://crummy.com/software/BeautifulSoup/bs4/doc)
+- [BeautifulSoup](https://crummy.com/software/BeautifulSoup/bs4/doc)
