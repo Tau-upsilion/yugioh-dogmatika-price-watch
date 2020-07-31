@@ -33,7 +33,36 @@ def is_good_response(resp):
 def log_error(e):
     print(e)
 
-def main():
+def parseData(data):
+    cardDataStr = json.dumps(data)
+    cardDataJson = json.loads(cardDataStr)
+    cardDataYaml = yaml.dump(cardDataJson)
+    return str(cardDataYaml)
+
+def structureData(nameResults, priceResults):
+    cardDict = {"data":[]}
+    for i in range(len(nameResults)):
+        card = {}
+        card["name"] = nameResults[i].contents
+        card["price"] = priceResults[i].contents
+        cardDict["data"].append(card)
+    return cardDict
+
+def sendEmails(msg):
+    context = ssl.create_default_context()
+    with smtplib.SMTP(smtp_server, port) as server:
+        server.starttls(context=context)
+        server.login(sender_email, sender_password)
+        for email in receiver_emails:
+            msg = MIMEMultipart()
+            msg['From'] = sender_email
+            msg['To'] = email
+            msg['Subject'] = "Dogmatika update " + str(datetime.now())
+            msg.attach(MIMEText(msg, 'plain'))
+            print("Sending email to " + email)
+            server.sendmail(sender_email, email, msg.as_string())
+
+def scrapeDogmatika():
     response = simple_get("https://www.tcgplayer.com/search/all/product?q=dogmatika")
     print("Running the simple get method")
     if response is not None:
@@ -41,32 +70,27 @@ def main():
         resp = session.get("https://www.tcgplayer.com/search/all/product?q=dogmatika")
         resp.html.render()
         html = BeautifulSoup(resp.html.html, "html.parser")
+
+        print("Extracting card names")
         allSearchResultSpansNames = html.findAll("span", {"class": "search-result__title"})
+        
+        print("Extracting card prices")
         allSearchResultSpansPrice = html.findAll("span", {"class": "inventory__price-with-shipping"})
-        cardDataDict = {"data":[]}
-        #I'm adding this as a dictionary for proper data structure
-        for i in range(len(allSearchResultSpansNames)):
-            card = {}
-            card["name"] = allSearchResultSpansNames[i].contents
-            card["price"] = allSearchResultSpansPrice[i].contents
-            cardDataDict["data"].append(card)
-            print("Adding " + json.dumps(card) + " to card data")
-        cardDataStr = json.dumps(cardDataDict)
-        cardDataJson = json.loads(cardDataStr)
-        cardDataYaml = yaml.dump(cardDataJson)
-        cardDataYamlStr = str(cardDataYaml)
-        print(cardDataYamlStr)
-        context = ssl.create_default_context()
-        with smtplib.SMTP(smtp_server, port) as server:
-            server.starttls(context=context)
-            server.login(sender_email, sender_password)
-            for email in receiver_emails:
-                msg = MIMEMultipart()
-                msg['From'] = sender_email
-                msg['To'] = email
-                msg['Subject'] = "Dogmatika update " + str(datetime.now())
-                msg.attach(MIMEText(cardDataYamlStr, 'plain'))
-                print("Sending email to " + email)
-                server.sendmail(sender_email, email, msg.as_string())
+
+        print("Structuring the data")
+        cardDataDict = structureData(allSearchResultSpansNames, allSearchResultSpansPrice)
+
+        print("Parsing the data")
+        parsedData = parseData(cardDataDict)
+
+        print("Sending emails")
+        sendEmails(parseData)
+
+        threading.Timer(60*30, scrapeDogmatika)
+
+def main():
+    scrapeDogmatika()
+
+
 if __name__=="__main__":
     main()
