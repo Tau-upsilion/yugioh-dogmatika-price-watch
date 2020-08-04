@@ -6,7 +6,7 @@ from requests_html import HTMLSession
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
-import json, smtplib, ssl, yaml
+import json, smtplib, ssl, yaml, threading
 import emailconfig as cfg
 
 port = 587
@@ -48,7 +48,7 @@ def structureData(nameResults, priceResults):
         cardDict["data"].append(card)
     return cardDict
 
-def sendEmails(msg):
+def sendEmails(message):
     context = ssl.create_default_context()
     with smtplib.SMTP(smtp_server, port) as server:
         server.starttls(context=context)
@@ -58,7 +58,7 @@ def sendEmails(msg):
             msg['From'] = sender_email
             msg['To'] = email
             msg['Subject'] = "Dogmatika update " + str(datetime.now())
-            msg.attach(MIMEText(msg, 'plain'))
+            msg.attach(MIMEText(message, 'plain'))
             print("Sending email to " + email)
             server.sendmail(sender_email, email, msg.as_string())
 
@@ -71,20 +71,20 @@ def scrapeDogmatika():
         resp.html.render()
         html = BeautifulSoup(resp.html.html, "html.parser")
 
-        print("Extracting card names")
+        print("{}: Extracting card names".format(str(datetime.now())))
         allSearchResultSpansNames = html.findAll("span", {"class": "search-result__title"})
         
-        print("Extracting card prices")
+        print("{}: Extracting card prices".format(str(datetime.now())))
         allSearchResultSpansPrice = html.findAll("span", {"class": "inventory__price-with-shipping"})
 
-        print("Structuring the data")
+        print("{}: Structuring the data".format(str(datetime.now())))
         cardDataDict = structureData(allSearchResultSpansNames, allSearchResultSpansPrice)
 
-        print("Parsing the data")
+        print("{}: Parsing the data".format(str(datetime.now())))
         parsedData = parseData(cardDataDict)
 
-        print("Sending emails")
-        sendEmails(parseData)
+        print("{}: Sending emails".format(str(datetime.now())))
+        sendEmails(parsedData)
 
         threading.Timer(60*30, scrapeDogmatika)
 
